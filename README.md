@@ -1,51 +1,99 @@
-# Welcome to your Expo app 👋
+# CryptoTracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A real-time cryptocurrency tracking app built with React Native and Expo. Track market prices, manage your portfolio, set price alerts, and stay updated with crypto news.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Live Market Data** — Top 50 cryptocurrencies with real-time price updates via Binance WebSocket
+- **Interactive Charts** — Price charts with multiple time intervals (24H, 7D, 30D, 90D, 1Y)
+- **Portfolio Tracking** — Track holdings, total value, and profit/loss
+- **Price Alerts** — Set custom alerts for price targets with push notifications
+- **Crypto News** — Latest cryptocurrency news feed
+- **Search** — Search across thousands of coins
+- **Dark Mode** — Dark-first UI with customizable theme
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- **React Native** 0.81 + **Expo** 54
+- **Expo Router** — File-based navigation
+- **Zustand** — Client state management
+- **TanStack React Query** — Server state & caching
+- **Binance WebSocket** — Real-time price streaming
+- **CoinGecko API** — Market data, charts, search
+- **Expo SQLite** — Local data caching
+- **React Native Wagmi Charts** — Interactive price charts
+- **Shopify FlashList** — High-performance lists
+- **TypeScript** — Full type safety
 
-   ```bash
-   npx expo start
-   ```
+## Getting Started
 
-In the output, you'll find options to open the app in a
+### Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [Node.js](https://nodejs.org/) >= 18
+- [pnpm](https://pnpm.io/) (recommended) or npm
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- iOS Simulator (macOS) or Android Emulator
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### Installation
 
 ```bash
-npm run reset-project
+# Clone the repository
+https://github.com/palveeen22/cryptotracker-app.git
+cd cryptotracker-app
+
+# Install dependencies
+pnpm install
+
+# Start the development server
+pnpm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Running on Devices
 
-## Learn more
+```bash
+# iOS Simulator
+pnpm ios
 
-To learn more about developing your project with Expo, look at the following resources:
+# Android Emulator
+pnpm android
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Web
+pnpm web
+```
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
+```
+app/                    # Screens (Expo Router file-based routing)
+├── (tabs)/             # Bottom tab navigator (Market, Portfolio, Alerts, News)
+├── coin/[id].tsx       # Coin detail screen
+├── search.tsx          # Search modal
+└── settings.tsx        # Settings screen
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# cryptotracker-app
+src/
+├── entities/           # Domain models (coin, portfolio, alert, news)
+├── features/           # User-facing use cases (search, create alert, add holding)
+├── widgets/            # Composed page-level components
+└── shared/             # Utilities, API clients, providers, database
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture documentation.
+
+## API Keys
+
+This app uses the **free tier** of the CoinGecko API — no API key required. Binance WebSocket is also publicly accessible.
+
+## Scripts
+
+| Command              | Description             |
+| -------------------- | ----------------------- |
+| `pnpm start`         | Start Expo dev server   |
+| `pnpm ios`           | Run on iOS Simulator    |
+| `pnpm android`       | Run on Android Emulator |
+| `pnpm web`           | Run in web browser      |
+| `pnpm lint`          | Run ESLint              |
+| `pnpm reset-project` | Reset to blank project  |
+
+## License
+
+MIT
