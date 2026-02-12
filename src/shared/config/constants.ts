@@ -1,6 +1,7 @@
 export const API_CONFIG = {
   COINGECKO_BASE_URL: 'https://api.coingecko.com/api/v3',
   BINANCE_WS_URL: 'wss://stream.binance.com:9443/ws',
+  COINCAP_WS_URL: 'wss://ws.coincap.io/prices?assets=',
   NEWS_BASE_URL: 'https://api.coingecko.com/api/v3',
 } as const;
 
