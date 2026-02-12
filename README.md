@@ -4,7 +4,7 @@ A real-time cryptocurrency tracking app built with React Native and Expo. Track 
 
 ## Features
 
-- **Live Market Data** — Top 50 cryptocurrencies with real-time price updates via Binance WebSocket
+- **Live Market Data** — Top 50 cryptocurrencies with real-time price updates via CoinCap WebSocket (with polling fallback)
 - **Interactive Charts** — Price charts with multiple time intervals (24H, 7D, 30D, 90D, 1Y)
 - **Portfolio Tracking** — Track holdings, total value, and profit/loss
 - **Price Alerts** — Set custom alerts for price targets with push notifications
@@ -18,7 +18,7 @@ A real-time cryptocurrency tracking app built with React Native and Expo. Track 
 - **Expo Router** — File-based navigation
 - **Zustand** — Client state management
 - **TanStack React Query** — Server state & caching
-- **Binance WebSocket** — Real-time price streaming
+- **CoinCap WebSocket** — Real-time price streaming (auto-fallback to polling)
 - **CoinGecko API** — Market data, charts, search
 - **Expo SQLite** — Local data caching
 - **React Native Wagmi Charts** — Interactive price charts
@@ -81,7 +81,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architecture documentation.
 
 ## API Keys
 
-This app uses the **free tier** of the CoinGecko API — no API key required. Binance WebSocket is also publicly accessible.
+This app uses the **free tier** of the CoinGecko API and **CoinCap WebSocket** — no API keys required.
 
 ## Scripts
 
