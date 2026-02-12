@@ -1,60 +1,69 @@
 import { WebSocketManager } from '@/src/shared/api/websocket-manager';
 import { API_CONFIG } from '@/src/shared/config/constants';
-import type { BinanceTickerData, RealtimePrice } from '@/src/entities/coin/model/types';
+import type { RealtimePrice } from '@/src/entities/coin/model/types';
 
-const COINGECKO_TO_BINANCE: Record<string, string> = {
-  bitcoin: 'BTCUSDT',
-  ethereum: 'ETHUSDT',
-  binancecoin: 'BNBUSDT',
-  ripple: 'XRPUSDT',
-  cardano: 'ADAUSDT',
-  solana: 'SOLUSDT',
-  dogecoin: 'DOGEUSDT',
-  polkadot: 'DOTUSDT',
-  'shiba-inu': 'SHIBUSDT',
-  litecoin: 'LTCUSDT',
-  avalanche: 'AVAXUSDT',
-  chainlink: 'LINKUSDT',
-  uniswap: 'UNIUSDT',
-  polygon: 'MATICUSDT',
-  stellar: 'XLMUSDT',
-  'near-protocol': 'NEARUSDT',
-  aptos: 'APTUSDT',
-  sui: 'SUIUSDT',
-  'internet-computer': 'ICPUSDT',
-  tron: 'TRXUSDT',
+const SUPPORTED_ASSETS = [
+  'bitcoin',
+  'ethereum',
+  'binance-coin',
+  'ripple',
+  'cardano',
+  'solana',
+  'dogecoin',
+  'polkadot',
+  'shiba-inu',
+  'litecoin',
+  'avalanche',
+  'chainlink',
+  'uniswap',
+  'polygon',
+  'stellar',
+  'near-protocol',
+  'aptos',
+  'sui',
+  'internet-computer',
+  'tron',
+];
+
+// CoinCap uses slightly different IDs than CoinGecko for some coins
+const COINCAP_TO_COINGECKO: Record<string, string> = {
+  'binance-coin': 'binancecoin',
+  'near-protocol': 'near',
+  'avalanche': 'avalanche-2',
+  'polygon': 'matic-network',
 };
 
 type PriceUpdateHandler = (prices: Map<string, RealtimePrice>) => void;
+type StatusUpdateHandler = (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
 
 let wsManager: WebSocketManager | null = null;
 let priceHandler: PriceUpdateHandler | null = null;
+let statusHandler: StatusUpdateHandler | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-const BINANCE_TO_COINGECKO = new Map(
-  Object.entries(COINGECKO_TO_BINANCE).map(([cg, bn]) => [bn.toLowerCase(), cg])
-);
+function toCoinGeckoId(coincapId: string): string {
+  return COINCAP_TO_COINGECKO[coincapId] ?? coincapId;
+}
 
-export function connectBinanceWS(onPriceUpdate: PriceUpdateHandler): void {
-  if (wsManager) {
-    wsManager.disconnect();
-  }
-
-  priceHandler = onPriceUpdate;
+function connectCoinCapWS(): void {
+  const assetsParam = SUPPORTED_ASSETS.join(',');
 
   wsManager = new WebSocketManager({
-    url: `${API_CONFIG.BINANCE_WS_URL}/!miniTicker@arr`,
+    url: `${API_CONFIG.COINCAP_WS_URL}${assetsParam}`,
     onMessage: (data) => {
-      if (!Array.isArray(data)) return;
+      if (!data || typeof data !== 'object') return;
 
       const prices = new Map<string, RealtimePrice>();
+      const entries = Object.entries(data as Record<string, string>);
 
-      for (const ticker of data as BinanceTickerData[]) {
-        const coinId = BINANCE_TO_COINGECKO.get(ticker.s.toLowerCase());
-        if (coinId) {
+      for (const [assetId, priceStr] of entries) {
+        const coinId = toCoinGeckoId(assetId);
+        const price = parseFloat(priceStr);
+        if (!isNaN(price)) {
           prices.set(coinId, {
-            price: parseFloat(ticker.c),
-            changePercent: parseFloat(ticker.P),
-            volume: parseFloat(ticker.q),
+            price,
+            changePercent: 0,
+            volume: 0,
           });
         }
       }
@@ -64,19 +73,85 @@ export function connectBinanceWS(onPriceUpdate: PriceUpdateHandler): void {
       }
     },
     onStatusChange: (status) => {
-      console.log(`[Binance WS] Status: ${status}`);
+      console.log(`[CoinCap WS] Status: ${status}`);
+      statusHandler?.(status);
+
+      if (status === 'error' || status === 'disconnected') {
+        startPollingFallback();
+      }
+      if (status === 'connected') {
+        stopPollingFallback();
+      }
     },
   });
 
   wsManager.connect();
 }
 
+async function pollPrices(): Promise<void> {
+  try {
+    const res = await fetch(
+      `${API_CONFIG.COINGECKO_BASE_URL}/simple/price?ids=bitcoin,ethereum,solana,cardano,ripple,dogecoin,polkadot,litecoin,chainlink,uniswap,stellar,tron&vs_currencies=usd&include_24hr_change=true`
+    );
+    if (!res.ok) return;
+
+    const data = (await res.json()) as Record<string, { usd: number; usd_24h_change?: number }>;
+    const prices = new Map<string, RealtimePrice>();
+
+    for (const [coinId, info] of Object.entries(data)) {
+      prices.set(coinId, {
+        price: info.usd,
+        changePercent: info.usd_24h_change ?? 0,
+        volume: 0,
+      });
+    }
+
+    if (prices.size > 0) {
+      priceHandler?.(prices);
+    }
+  } catch {
+    // silent fail, will retry next interval
+  }
+}
+
+function startPollingFallback(): void {
+  if (pollTimer) return;
+  console.log('[Fallback] Starting price polling (10s interval)');
+  statusHandler?.('connecting');
+  pollPrices().then(() => statusHandler?.('connected'));
+  pollTimer = setInterval(pollPrices, 10_000);
+}
+
+function stopPollingFallback(): void {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+export function connectBinanceWS(
+  onPriceUpdate: PriceUpdateHandler,
+  onStatusChange?: StatusUpdateHandler,
+): void {
+  if (wsManager) {
+    wsManager.disconnect();
+  }
+  stopPollingFallback();
+
+  priceHandler = onPriceUpdate;
+  statusHandler = onStatusChange ?? null;
+
+  connectCoinCapWS();
+}
+
 export function disconnectBinanceWS(): void {
   wsManager?.disconnect();
   wsManager = null;
   priceHandler = null;
+  statusHandler = null;
+  stopPollingFallback();
 }
 
 export function getBinanceSymbol(coingeckoId: string): string | undefined {
-  return COINGECKO_TO_BINANCE[coingeckoId];
+  return SUPPORTED_ASSETS.find((a) => toCoinGeckoId(a) === coingeckoId);
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { formatTimeAgo } from '@/src/shared/lib/formatters';
 import type { NewsArticle } from '@/src/entities/news/model/types';
 
@@ -9,7 +10,10 @@ interface NewsCardProps {
 
 export const NewsCard = React.memo(function NewsCard({ article }: NewsCardProps) {
   const handlePress = () => {
-    Linking.openURL(article.url);
+    WebBrowser.openBrowserAsync(article.url, {
+      readerMode: false,
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+    });
   };
 
   return (
