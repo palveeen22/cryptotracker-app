@@ -12,12 +12,16 @@ import { EmptyState } from '@/src/shared/ui/EmptyState';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, TextInput } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function AlertsScreen() {
-  const activeAlerts = useAlertStore(selectActiveAlerts);
-  const triggeredAlerts = useAlertStore(selectTriggeredAlerts);
+  const activeAlerts = useAlertStore(useShallow(selectActiveAlerts));
+  const triggeredAlerts = useAlertStore(useShallow(selectTriggeredAlerts));
   const toggleAlert = useAlertStore((s) => s.toggleAlert);
   const removeAlert = useAlertStore((s) => s.removeAlert);
   const clearTriggered = useAlertStore((s) => s.clearTriggered);
@@ -27,6 +31,8 @@ export default function AlertsScreen() {
   const [showCoinPicker, setShowCoinPicker] = useState(false);
   const [selectedCoin, setSelectedCoin] = useState<CoinMarket | null>(null);
   const { data: marketData } = useMarketData();
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
 
   const handleDelete = (alert: PriceAlert) => {
     Alert.alert('Delete Alert', `Remove alert for ${alert.coinName}?`, [
@@ -42,6 +48,11 @@ export default function AlertsScreen() {
     }
     setShowCoinPicker(true);
   };
+
+    const filteredCoins = marketData?.filter((coin) =>
+    coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    coin.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -81,35 +92,90 @@ export default function AlertsScreen() {
         />
       )}
 
-      {/* Coin picker for alert creation */}
-      {showCoinPicker && marketData && (
-        <View style={styles.overlay}>
-          <View style={styles.pickerContainer}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Select Coin</Text>
-              <Pressable onPress={() => setShowCoinPicker(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+      {/* Bottom Sheet Modal - Drawer Style */}
+<Modal
+        visible={showCoinPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCoinPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.backdrop} 
+            onPress={() => setShowCoinPicker(false)}
+          />
+          
+          <View style={styles.drawerContainer}>
+            <View style={styles.dragHandle} />
+            
+            <View style={styles.drawerHeader}>
+              <Text style={styles.drawerTitle}>Select Coin</Text>
+              <Pressable 
+                onPress={() => setShowCoinPicker(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={24} color="#8E8E93" />
               </Pressable>
             </View>
-            {marketData.slice(0, 20).map((coin) => (
-              <Pressable
-                key={coin.id}
-                style={styles.pickerItem}
-                onPress={() => {
-                  setSelectedCoin(coin);
-                  setShowCoinPicker(false);
-                  setShowCreate(true);
-                }}
-              >
-                <Text style={styles.pickerCoinName}>
-                  {coin.name} ({coin.symbol.toUpperCase()})
-                </Text>
-              </Pressable>
-            ))}
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#8E8E93" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search coins..."
+                placeholderTextColor="#8E8E93"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#8E8E93" />
+                </Pressable>
+              )}
+            </View>
+
+            {filteredCoins && (
+              <Text style={styles.coinCount}>
+                {filteredCoins.length} coins
+              </Text>
+            )}
+
+            <FlatList
+              data={filteredCoins || []}
+              keyExtractor={(coin) => coin.id}
+              renderItem={({ item: coin }) => (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.coinItem,
+                    pressed && styles.coinItemPressed,
+                  ]}
+                  onPress={() => {
+                    setSelectedCoin(coin);
+                    setShowCoinPicker(false);
+                    setShowCreate(true);
+                    setSearchQuery(''); // Clear search
+                  }}
+                >
+                  <View style={styles.coinInfo}>
+                    <Text style={styles.coinName}>{coin.name}</Text>
+                    <Text style={styles.coinSymbol}>{coin.symbol.toUpperCase()}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                </Pressable>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.coinSeparator} />}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.coinListContent}
+              keyboardShouldPersistTaps="handled"
+            />
           </View>
         </View>
-      )}
+      </Modal>
 
+      {/* Create Alert Sheet */}
       <CreateAlertSheet
         visible={showCreate}
         coin={selectedCoin}
@@ -168,42 +234,97 @@ const styles = StyleSheet.create({
     backgroundColor: '#2C2C2E',
     marginLeft: 64,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    padding: 20,
+
+   searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    height: 44,
+    gap: 8,
   },
-  pickerContainer: {
+  searchInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    height: '100%',
+  },
+
+  // Bottom Sheet Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  drawerContainer: {
+    height: SCREEN_HEIGHT * 0.7, // 70% of screen height
     backgroundColor: '#1C1C1E',
-    borderRadius: 16,
-    padding: 16,
-    maxHeight: '70%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
   },
-  pickerHeader: {
+  dragHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: '#3A3A3C',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  drawerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
-  pickerTitle: {
-    fontSize: 18,
+  drawerTitle: {
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  pickerItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#2C2C2E',
+  coinCount: {
+    fontSize: 13,
+    color: '#8E8E93',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  pickerCoinName: {
-    fontSize: 15,
-    fontWeight: '500',
+  coinListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  coinItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+  },
+  coinItemPressed: {
+    backgroundColor: '#6C63FF',
+  },
+  coinInfo: {
+    flex: 1,
+  },
+  coinName: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  coinSymbol: {
+    fontSize: 13,
+    color: '#8E8E93',
+  },
+  coinSeparator: {
+    height: 8,
   },
 });

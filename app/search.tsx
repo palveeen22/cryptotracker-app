@@ -1,10 +1,9 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { SearchBar } from '@/src/features/search/ui/SearchBar';
 import { useSearch } from '@/src/features/search/model/useSearch';
+import { SearchBar } from '@/src/features/search/ui/SearchBar';
 import { LoadingSpinner } from '@/src/shared/ui/LoadingSpinner';
+import { useRouter } from 'expo-router';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SearchScreen() {
   const router = useRouter();

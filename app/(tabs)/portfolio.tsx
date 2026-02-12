@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { PortfolioSummary } from '@/src/widgets/portfolio-summary/PortfolioSummary';
-import { AddHoldingSheet } from '@/src/features/portfolio/add-holding/AddHoldingSheet';
-import { usePortfolioStore } from '@/src/entities/portfolio';
-import { useMarketData } from '@/src/entities/coin';
 import type { CoinMarket } from '@/src/entities/coin';
+import { useMarketData } from '@/src/entities/coin';
+import { usePortfolioStore } from '@/src/entities/portfolio';
+import { AddHoldingSheet } from '@/src/features/portfolio/add-holding/AddHoldingSheet';
+import { PortfolioSummary } from '@/src/widgets/portfolio-summary/PortfolioSummary';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PortfolioScreen() {
   const [showCoinPicker, setShowCoinPicker] = useState(false);
