@@ -1,11 +1,11 @@
+import type { NewsArticle } from '@/src/entities/news';
+import { NewsCard, useNewsData } from '@/src/entities/news';
+import { EmptyState } from '@/src/shared/ui/EmptyState';
+import { ErrorView } from '@/src/shared/ui/ErrorView';
+import { LoadingSpinner } from '@/src/shared/ui/LoadingSpinner';
+import { FlashList } from '@shopify/flash-list';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { useNewsData, NewsCard } from '@/src/entities/news';
-import type { NewsArticle } from '@/src/entities/news';
-import { LoadingSpinner } from '@/src/shared/ui/LoadingSpinner';
-import { ErrorView } from '@/src/shared/ui/ErrorView';
-import { EmptyState } from '@/src/shared/ui/EmptyState';
 
 export function NewsFeed() {
   const { data, isLoading, error, refetch } = useNewsData();
@@ -39,7 +39,7 @@ export function NewsFeed() {
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
-      estimatedItemSize={104}
+      // estimatedItemSize={104}
       ItemSeparatorComponent={ItemSeparator}
       showsVerticalScrollIndicator={false}
       onRefresh={refetch}

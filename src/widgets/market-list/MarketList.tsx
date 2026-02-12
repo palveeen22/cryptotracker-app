@@ -6,6 +6,7 @@ import {
   useCoinStore,
   useMarketData,
 } from '@/src/entities/coin';
+import { selectWsStatus } from '@/src/entities/coin/model/store';
 import { useSettingsStore } from '@/src/features/settings/model/store';
 import { ErrorView } from '@/src/shared/ui/ErrorView';
 import { LoadingSpinner } from '@/src/shared/ui/LoadingSpinner';
@@ -17,20 +18,42 @@ interface MarketListProps {
   onCoinLongPress?: (coin: CoinMarket) => void;
 }
 
+const WS_STATUS_COLORS: Record<string, string> = {
+  connected: '#34C759',
+  connecting: '#FF9500',
+  disconnected: '#636366',
+  error: '#FF3B30',
+};
+
+const WS_STATUS_LABELS: Record<string, string> = {
+  connected: 'LIVE',
+  connecting: 'Connecting...',
+  disconnected: 'Offline',
+  error: 'Error',
+};
+
 export function MarketList({ onCoinLongPress }: MarketListProps) {
   const currency = useSettingsStore((s) => s.currency);
   const { data, isLoading, error, refetch } = useMarketData(currency);
   const setRealtimePrices = useCoinStore((s) => s.setRealtimePrices);
+  const setWsStatus = useCoinStore((s) => s.setWsStatus);
+  const wsStatus = useCoinStore(selectWsStatus);
 
   useEffect(() => {
-    connectBinanceWS((prices) => {
-      setRealtimePrices(prices);
-    });
+    connectBinanceWS(
+      (prices) => {
+        setRealtimePrices(prices);
+      },
+      (status) => {
+        setWsStatus(status);
+      },
+    );
 
     return () => {
       disconnectBinanceWS();
+      setWsStatus('disconnected');
     };
-  }, [setRealtimePrices]);
+  }, [setRealtimePrices, setWsStatus]);
 
   const renderItem = useCallback(
     ({ item }: { item: CoinMarket }) => (
@@ -55,7 +78,12 @@ export function MarketList({ onCoinLongPress }: MarketListProps) {
       <View style={styles.header}>
         <Text style={styles.headerRank}>#</Text>
         <Text style={styles.headerName}>Coin</Text>
-        <Text style={styles.headerChart}>7D</Text>
+        <View style={styles.wsIndicator}>
+          <View style={[styles.wsDot, { backgroundColor: WS_STATUS_COLORS[wsStatus] }]} />
+          <Text style={[styles.wsLabel, { color: WS_STATUS_COLORS[wsStatus] }]}>
+            {WS_STATUS_LABELS[wsStatus]}
+          </Text>
+        </View>
         <Text style={styles.headerPrice}>Price</Text>
       </View>
       <FlashList
@@ -96,12 +124,21 @@ const styles = StyleSheet.create({
     color: '#636366',
     marginLeft: 42,
   },
-  headerChart: {
-    width: 60,
-    fontSize: 12,
-    color: '#636366',
-    textAlign: 'center',
+  wsIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginHorizontal: 8,
+  },
+  wsDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  wsLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   headerPrice: {
     width: 90,
